@@ -65,10 +65,10 @@
 
 #define POLL_DUR 10
 #define WAIT_DUR 50000
-#define LED1_PORT GPIO_PORT_P4
+#define LED1_PORT GPIO_PORT_P5
 #define LED1_PIN GPIO_PIN0
 #define SW1_PORT GPIO_PORT_P1
-#define SW1_PIN GPIO_PIN2
+#define SW1_PIN GPIO_PIN5
 
 volatile uint16_t poll = 1;
 volatile uint16_t listening_for_rising_edge = 1;
@@ -109,7 +109,7 @@ void main (void)
     Timer_A_initContinuousMode(TIMER_A1_BASE, &initContParam1);
 
     initUpParam0.clockSource = TIMER_A_CLOCKSOURCE_SMCLK;
-    initUpParam0.clockSourceDivider = TIMER_A_CLOCKSOURCE_DIVIDER_64;
+    initUpParam0.clockSourceDivider = TIMER_A_CLOCKSOURCE_DIVIDER_1;
     initUpParam0.timerPeriod = 0xFFFF;
     initUpParam0.timerInterruptEnable_TAIE = TIMER_A_TAIE_INTERRUPT_DISABLE;
     initUpParam0.timerClear = TIMER_A_DO_CLEAR;
@@ -172,19 +172,18 @@ __attribute__((interrupt(TIMER1_A0_VECTOR)))
 #endif
 void TIMER1_A0_ISR (void) {
 
-
-    uint16_t incr_amt = (uint16_t)(poll > 9 ? POLL_DUR : WAIT_DUR);
+    uint16_t incr_amt = (uint16_t)(poll > 5 ? POLL_DUR : WAIT_DUR);
 
     //Toggle LED1
 
-    if (poll > 9) GPIO_setOutputHighOnPin(LED1_PORT, LED1_PIN);
+    if (poll > 5) GPIO_setOutputHighOnPin(LED1_PORT, LED1_PIN);
     else GPIO_setOutputLowOnPin(LED1_PORT, LED1_PIN);
 
 
 //    showChar('A', pos1);
 
 
-    if (poll > 9) {
+    if (poll > 5) {
         poll = 0;
     } else {
         poll++;
