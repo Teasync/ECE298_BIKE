@@ -1,68 +1,14 @@
-/* --COPYRIGHT--,BSD
- * Copyright (c) 2017, Texas Instruments Incorporated
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * *  Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- *
- * *  Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- *
- * *  Neither the name of Texas Instruments Incorporated nor the names of
- *    its contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
- * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
- * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
- * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
- * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * --/COPYRIGHT--*/
-//******************************************************************************
-//!  TIMER_A, Toggle LED1, CCR0 Cont. Mode ISR, DCO SMCLK
-//!
 //!  Toggle LED1 using software and TA_0 ISR. Toggles every
 //!  50000 SMCLK cycles. SMCLK provides clock source for TACLK.
 //!  During the TA_0 ISR, LED1 is toggled and 50000 clock cycles are added to
 //!  CCR0. TA_0 ISR is triggered every 50000 cycles. CPU is normally off and
 //!  used only during TA_ISR.
 //!  ACLK = n/a, MCLK = SMCLK = TACLK = default DCO ~1.048MHz
-//!
-//!           MSP430FR2xx_4xx Board
-//!              ---------------
-//!          /|\|               |
-//!           | |               |
-//!           --|RST            |
-//!             |               |
-//!             |               |-->LED1
-//!
-//! This example uses the following peripherals and I/O signals.  You must
-//! review these and change as needed for your own board:
-//! - TimerA peripheral
-//! - GPIO peripheral
-//!
-//! This example uses the following interrupt handlers.  To use this example
-//! in your own application you must add these interrupt handlers to your
-//! vector table.
-//! - Timer A0
-//!
-//*****************************************************************************
+
 #include "driverlib.h"
 #include <msp430.h>
 #include <stdio.h>
 #include <hal_LCD.h>
-
 
 #define TRIG_DUR 10
 
@@ -87,40 +33,16 @@
 #define BUZZ_PORT GPIO_PORT_P1
 #define BUZZ_PIN GPIO_PIN4
 
-#define c 261
-#define d 294
-#define e 329
-#define f 349
-#define g 391
-#define gS 415
-#define a 440
-#define aS 455
-#define b 466
-#define cH 523
-#define cSH 554
-#define dH 587
-#define dSH 622
-#define eH 659
-#define fH 698
-#define fSH 740
-#define gH 784
-#define gSH 830
-#define aH 880
-
 
 void beep(int per, int len) {
     int i;
-    for (i = 0;i<len;i++)
-    {
+    for (i = 0; i < len; i++) {
         GPIO_toggleOutputOnPin(BUZZ_PORT, BUZZ_PIN);    //Set P1.2...
 
         int j;
         for (j = 0; j < per; j++) {
             __delay_cycles(1);
         }
-//        delay_us(delay);   //...for a semiperiod...
-//        P1OUT &= ~BIT4;    //...then reset it...
-//        delay_us(delay);   //...for the other semiperiod.
     }
 }
 
@@ -130,8 +52,7 @@ volatile uint32_t wait_counter = 0;
 volatile uint16_t listening_for_rising_edge = 1;
 Timer_A_initUpModeParam initUpParam0 = {0};
 
-void main (void)
-{
+void main(void) {
     //Stop Watchdog Timer
     WDT_A_hold(WDT_A_BASE);
 
@@ -198,17 +119,6 @@ void main (void)
     Timer_A_startCounter(TIMER_A1_BASE, TIMER_A_CONTINUOUS_MODE);
     Timer_A_startCounter(TIMER_A0_BASE, TIMER_A_UP_MODE);
 
-    beep(a, 500);
-    beep(a, 500);
-    beep(a, 500);
-    beep(f, 350);
-    beep(cH, 150);
-    beep(a, 500);
-    beep(f, 350);
-    beep(cH, 150);
-    beep(a, 650);
-
-
     //Enter LPM0, enable interrupts
     __bis_SR_register(LPM0_bits + GIE);
 
@@ -224,7 +134,8 @@ __interrupt
 #elif defined(__GNUC__)
 __attribute__((interrupt(PORT1_VECTOR)))
 #endif
-void P1_ISR (void) {
+
+void P1_ISR(void) {
     //Start timer on rising edge, stop on falling edge, print counter value
 
     if (listening_for_rising_edge == 1) {
@@ -235,15 +146,15 @@ void P1_ISR (void) {
     } else {
         Timer_A_stop(TIMER_A0_BASE);
         ct = Timer_A_getCounterValue(TIMER_A0_BASE);
-        showInt(ct);
+        showInt(ct/58);
         if (ct < 580) {
-            beep(125, 200);
+            beep(125, 100);
             GPIO_setOutputHighOnPin(LOW_LED_PORT, LOW_LED_PIN);
             GPIO_setOutputLowOnPin(HI_LED_PORT, HI_LED_PIN);
         } else if (ct < 2900) {
             GPIO_setOutputHighOnPin(HI_LED_PORT, HI_LED_PIN);
             GPIO_setOutputLowOnPin(LOW_LED_PORT, LOW_LED_PIN);
-            beep(250, 100);
+            beep(250, 50);
         } else {
             GPIO_setOutputLowOnPin(HI_LED_PORT, HI_LED_PIN);
             GPIO_setOutputLowOnPin(LOW_LED_PORT, LOW_LED_PIN);
@@ -264,7 +175,8 @@ __interrupt
 #elif defined(__GNUC__)
 __attribute__((interrupt(TIMER1_A0_VECTOR)))
 #endif
-void TIMER1_A0_ISR (void) {
+
+void TIMER1_A0_ISR(void) {
 
     uint16_t curr = Timer_A_getCaptureCompareCount(TIMER_A1_BASE, TIMER_A_CAPTURECOMPARE_REGISTER_0);
     uint16_t incr_amt;
