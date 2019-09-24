@@ -70,7 +70,7 @@ void Init_LCD(void);
 void displayScrollText(char*);
 void showChar(char, int);
 void showHex(int hex);
-void showInt(int num);
+void showInt(uint16_t num);
 void clearLCD(void);
 
 

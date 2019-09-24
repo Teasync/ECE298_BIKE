@@ -63,14 +63,42 @@
 #include <stdio.h>
 #include <hal_LCD.h>
 
-#define POLL_DUR 10
+
+#define TRIG_DUR 10
+
 #define WAIT_DUR 50000
-#define LED1_PORT GPIO_PORT_P5
-#define LED1_PIN GPIO_PIN0
-#define SW1_PORT GPIO_PORT_P1
-#define SW1_PIN GPIO_PIN5
+#define WAIT_CT 5
+
+#define TRIG_PORT GPIO_PORT_P5
+#define TRIG_PIN GPIO_PIN0
+
+#define LED_PORT GPIO_PORT_P4
+#define LED_PIN GPIO_PIN0
+
+#define ECHO_PORT GPIO_PORT_P1
+#define ECHO_PIN GPIO_PIN5
+
+#define BUZZ_PORT GPIO_PORT_P1
+#define BUZZ_PIN GPIO_PIN4
+
+void beep(int per, int len) {
+    int i;
+    for (i = 0;i<len;i++)
+    {
+        GPIO_toggleOutputOnPin(BUZZ_PORT, BUZZ_PIN);    //Set P1.2...
+
+        int j;
+        for (j = 0; j < per; j++) {
+            __delay_cycles(1);
+        }
+//        delay_us(delay);   //...for a semiperiod...
+//        P1OUT &= ~BIT4;    //...then reset it...
+//        delay_us(delay);   //...for the other semiperiod.
+    }
+}
 
 volatile uint16_t poll = 1;
+volatile uint32_t wait_counter = 0;
 volatile uint16_t listening_for_rising_edge = 1;
 Timer_A_initUpModeParam initUpParam0 = {0};
 
@@ -79,16 +107,18 @@ void main (void)
     //Stop Watchdog Timer
     WDT_A_hold(WDT_A_BASE);
 
-    //Set LED1 as an output pin.
-    GPIO_setAsOutputPin(LED1_PORT, LED1_PIN);
+    //Set output pins
+    GPIO_setAsOutputPin(TRIG_PORT, TRIG_PIN);
+    GPIO_setOutputHighOnPin(TRIG_PORT, TRIG_PIN);
 
-    GPIO_setOutputHighOnPin(LED1_PORT, LED1_PIN);
+    GPIO_setAsOutputPin(BUZZ_PORT, BUZZ_PIN);
+    GPIO_setOutputHighOnPin(BUZZ_PORT, BUZZ_PIN);
 
-    //Set SW1 as an input pin.
-    GPIO_setAsInputPinWithPullUpResistor(SW1_PORT, SW1_PIN);
-    GPIO_enableInterrupt(SW1_PORT, SW1_PIN);
-    GPIO_selectInterruptEdge(SW1_PORT, SW1_PIN, GPIO_LOW_TO_HIGH_TRANSITION);
-    GPIO_clearInterrupt(SW1_PORT, SW1_PIN);
+    //Set input pins
+    GPIO_setAsInputPinWithPullUpResistor(ECHO_PORT, ECHO_PIN);
+    GPIO_enableInterrupt(ECHO_PORT, ECHO_PIN);
+    GPIO_selectInterruptEdge(ECHO_PORT, ECHO_PIN, GPIO_LOW_TO_HIGH_TRANSITION);
+    GPIO_clearInterrupt(ECHO_PORT, ECHO_PIN);
 
     Init_LCD();
 
@@ -99,7 +129,7 @@ void main (void)
     PMM_unlockLPM5();
 
     //Start timer in continuous mode sourced by SMCLK
-
+    //Initialize Timer 1
     Timer_A_initContinuousModeParam initContParam1 = {0};
     initContParam1.clockSource = TIMER_A_CLOCKSOURCE_SMCLK;
     initContParam1.clockSourceDivider = TIMER_A_CLOCKSOURCE_DIVIDER_1;
@@ -108,6 +138,7 @@ void main (void)
     initContParam1.startTimer = false;
     Timer_A_initContinuousMode(TIMER_A1_BASE, &initContParam1);
 
+    //Initialize Timer 0
     initUpParam0.clockSource = TIMER_A_CLOCKSOURCE_SMCLK;
     initUpParam0.clockSourceDivider = TIMER_A_CLOCKSOURCE_DIVIDER_1;
     initUpParam0.timerPeriod = 0xFFFF;
@@ -116,19 +147,21 @@ void main (void)
     initUpParam0.startTimer = false;
     Timer_A_initUpMode(TIMER_A0_BASE, &initUpParam0);
 
-    //Initialize compare mode
+    //Initialize compare mode for Timer 1
     Timer_A_clearCaptureCompareInterrupt(TIMER_A1_BASE, TIMER_A_CAPTURECOMPARE_REGISTER_0);
 
     Timer_A_initCompareModeParam initCompParam = {0};
     initCompParam.compareRegister = TIMER_A_CAPTURECOMPARE_REGISTER_0;
     initCompParam.compareInterruptEnable = TIMER_A_CAPTURECOMPARE_INTERRUPT_ENABLE;
     initCompParam.compareOutputMode = TIMER_A_OUTPUTMODE_OUTBITVALUE;
-    initCompParam.compareValue = POLL_DUR;
+    initCompParam.compareValue = TRIG_DUR;
     Timer_A_initCompareMode(TIMER_A1_BASE, &initCompParam);
 
+    //Start both counters
     Timer_A_startCounter(TIMER_A1_BASE, TIMER_A_CONTINUOUS_MODE);
     Timer_A_startCounter(TIMER_A0_BASE, TIMER_A_UP_MODE);
 
+//    beep(100);
 
     //Enter LPM0, enable interrupts
     __bis_SR_register(LPM0_bits + GIE);
@@ -146,21 +179,29 @@ __interrupt
 __attribute__((interrupt(PORT1_VECTOR)))
 #endif
 void P1_ISR (void) {
-    //TODO: Start ultrasonic sensor timer here
+    //Start timer on rising edge, stop on falling edge, print counter value
 
     if (listening_for_rising_edge == 1) {
         Timer_A_initUpMode(TIMER_A0_BASE, &initUpParam0);
         Timer_A_startCounter(TIMER_A0_BASE, TIMER_A_UP_MODE);
         listening_for_rising_edge = 0;
-        GPIO_selectInterruptEdge(SW1_PORT, SW1_PIN, GPIO_HIGH_TO_LOW_TRANSITION);
+        GPIO_selectInterruptEdge(ECHO_PORT, ECHO_PIN, GPIO_HIGH_TO_LOW_TRANSITION);
     } else {
         Timer_A_stop(TIMER_A0_BASE);
-        showInt(Timer_A_getCounterValue(TIMER_A0_BASE));
+        uint16_t ct = Timer_A_getCounterValue(TIMER_A0_BASE);
+        showInt(ct);
+        if (ct < 1000) {
+            beep(125, 500);
+        } else if (ct < 2000) {
+            beep(250, 250);
+        }
         listening_for_rising_edge = 1;
-        GPIO_selectInterruptEdge(SW1_PORT, SW1_PIN, GPIO_LOW_TO_HIGH_TRANSITION);
+        GPIO_selectInterruptEdge(ECHO_PORT, ECHO_PIN, GPIO_LOW_TO_HIGH_TRANSITION);
     }
 
-    GPIO_clearInterrupt(SW1_PORT, SW1_PIN);
+//    beep(50);
+
+    GPIO_clearInterrupt(ECHO_PORT, ECHO_PIN);
 }
 
 //TIMER1_A0 interrupt vector service routine.
@@ -172,24 +213,31 @@ __attribute__((interrupt(TIMER1_A0_VECTOR)))
 #endif
 void TIMER1_A0_ISR (void) {
 
-    uint16_t incr_amt = (uint16_t)(poll > 5 ? POLL_DUR : WAIT_DUR);
+    uint16_t curr = Timer_A_getCaptureCompareCount(TIMER_A1_BASE, TIMER_A_CAPTURECOMPARE_REGISTER_0);
+    uint16_t incr_amt;
 
-    //Toggle LED1
-
-    if (poll > 5) GPIO_setOutputHighOnPin(LED1_PORT, LED1_PIN);
-    else GPIO_setOutputLowOnPin(LED1_PORT, LED1_PIN);
-
-
-//    showChar('A', pos1);
-
-
-    if (poll > 5) {
-        poll = 0;
+    if (wait_counter <= 5) {
+        incr_amt = WAIT_DUR;
     } else {
-        poll++;
+        incr_amt = TRIG_DUR;
     }
 
-    uint16_t compVal = Timer_A_getCaptureCompareCount(TIMER_A1_BASE, TIMER_A_CAPTURECOMPARE_REGISTER_0) + incr_amt;
+    //Toggle TRIG
+    if (wait_counter > 5) {
+        GPIO_setOutputHighOnPin(TRIG_PORT, TRIG_PIN);
+    } else {
+        GPIO_setOutputLowOnPin(TRIG_PORT, TRIG_PIN);
+    }
+
+    if (wait_counter > 5) {
+        wait_counter = 0;
+    } else {
+        wait_counter++;
+    }
+
+//    GPIO_toggleOutputOnPin(LED_PORT, LED_PIN);
+
+    uint16_t compVal = curr + incr_amt;
 
     //Add Offset to CCR0
     Timer_A_setCompareValue(TIMER_A1_BASE, TIMER_A_CAPTURECOMPARE_REGISTER_0, compVal);

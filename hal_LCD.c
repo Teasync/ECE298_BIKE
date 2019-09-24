@@ -202,7 +202,7 @@ void showHex(int hex)
     showChar((char)(0x03 & hex) + '0', pos6);
 }
 
-void showInt(int num) {
+void showInt(uint16_t num) {
     showChar('0' + num % 10, pos6);
     num /= 10;
     showChar('0' + num % 10, pos5);
