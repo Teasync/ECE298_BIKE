@@ -66,7 +66,7 @@
 
 #define TRIG_DUR 10
 
-#define WAIT_DUR 50000
+#define WAIT_DUR 20000
 #define WAIT_CT 5
 
 #define TRIG_PORT GPIO_PORT_P5
@@ -75,11 +75,38 @@
 #define LED_PORT GPIO_PORT_P4
 #define LED_PIN GPIO_PIN0
 
+#define LOW_LED_PORT GPIO_PORT_P1
+#define LOW_LED_PIN GPIO_PIN3
+
+#define HI_LED_PORT GPIO_PORT_P5
+#define HI_LED_PIN GPIO_PIN3
+
 #define ECHO_PORT GPIO_PORT_P1
 #define ECHO_PIN GPIO_PIN5
 
 #define BUZZ_PORT GPIO_PORT_P1
 #define BUZZ_PIN GPIO_PIN4
+
+#define c 261
+#define d 294
+#define e 329
+#define f 349
+#define g 391
+#define gS 415
+#define a 440
+#define aS 455
+#define b 466
+#define cH 523
+#define cSH 554
+#define dH 587
+#define dSH 622
+#define eH 659
+#define fH 698
+#define fSH 740
+#define gH 784
+#define gSH 830
+#define aH 880
+
 
 void beep(int per, int len) {
     int i;
@@ -97,6 +124,7 @@ void beep(int per, int len) {
     }
 }
 
+volatile uint16_t ct = 0xFFFF;
 volatile uint16_t poll = 1;
 volatile uint32_t wait_counter = 0;
 volatile uint16_t listening_for_rising_edge = 1;
@@ -110,6 +138,15 @@ void main (void)
     //Set output pins
     GPIO_setAsOutputPin(TRIG_PORT, TRIG_PIN);
     GPIO_setOutputHighOnPin(TRIG_PORT, TRIG_PIN);
+
+    GPIO_setAsOutputPin(BUZZ_PORT, BUZZ_PIN);
+    GPIO_setOutputHighOnPin(BUZZ_PORT, BUZZ_PIN);
+
+    GPIO_setAsOutputPin(HI_LED_PORT, HI_LED_PIN);
+    GPIO_setOutputHighOnPin(HI_LED_PORT, HI_LED_PIN);
+
+    GPIO_setAsOutputPin(LOW_LED_PORT, HI_LED_PIN);
+    GPIO_setOutputHighOnPin(LOW_LED_PORT, LOW_LED_PIN);
 
     GPIO_setAsOutputPin(BUZZ_PORT, BUZZ_PIN);
     GPIO_setOutputHighOnPin(BUZZ_PORT, BUZZ_PIN);
@@ -161,7 +198,16 @@ void main (void)
     Timer_A_startCounter(TIMER_A1_BASE, TIMER_A_CONTINUOUS_MODE);
     Timer_A_startCounter(TIMER_A0_BASE, TIMER_A_UP_MODE);
 
-//    beep(100);
+    beep(a, 500);
+    beep(a, 500);
+    beep(a, 500);
+    beep(f, 350);
+    beep(cH, 150);
+    beep(a, 500);
+    beep(f, 350);
+    beep(cH, 150);
+    beep(a, 650);
+
 
     //Enter LPM0, enable interrupts
     __bis_SR_register(LPM0_bits + GIE);
@@ -188,12 +234,19 @@ void P1_ISR (void) {
         GPIO_selectInterruptEdge(ECHO_PORT, ECHO_PIN, GPIO_HIGH_TO_LOW_TRANSITION);
     } else {
         Timer_A_stop(TIMER_A0_BASE);
-        uint16_t ct = Timer_A_getCounterValue(TIMER_A0_BASE);
+        ct = Timer_A_getCounterValue(TIMER_A0_BASE);
         showInt(ct);
-        if (ct < 1000) {
-            beep(125, 500);
-        } else if (ct < 2000) {
-            beep(250, 250);
+        if (ct < 580) {
+            beep(125, 200);
+            GPIO_setOutputHighOnPin(LOW_LED_PORT, LOW_LED_PIN);
+            GPIO_setOutputLowOnPin(HI_LED_PORT, HI_LED_PIN);
+        } else if (ct < 2900) {
+            GPIO_setOutputHighOnPin(HI_LED_PORT, HI_LED_PIN);
+            GPIO_setOutputLowOnPin(LOW_LED_PORT, LOW_LED_PIN);
+            beep(250, 100);
+        } else {
+            GPIO_setOutputLowOnPin(HI_LED_PORT, HI_LED_PIN);
+            GPIO_setOutputLowOnPin(LOW_LED_PORT, LOW_LED_PIN);
         }
         listening_for_rising_edge = 1;
         GPIO_selectInterruptEdge(ECHO_PORT, ECHO_PIN, GPIO_LOW_TO_HIGH_TRANSITION);
