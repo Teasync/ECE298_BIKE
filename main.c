@@ -157,6 +157,21 @@ void Pin_Init(void) {
     GPIO_selectInterruptEdge(ECHO2_PORT, ECHO2_PIN,
                              GPIO_LOW_TO_HIGH_TRANSITION);
     GPIO_clearInterrupt(ECHO2_PORT, ECHO2_PIN);
+
+
+    GPIO_setAsInputPinWithPullUpResistor(SET_BTN_PORT, SET_BTN_PIN);
+    GPIO_setAsInputPinWithPullUpResistor(NEXT_BTN_PORT, NEXT_BTN_PIN);
+
+    GPIO_enableInterrupt(SET_BTN_PORT, SET_BTN_PIN);
+    GPIO_enableInterrupt(NEXT_BTN_PORT, NEXT_BTN_PIN);
+    GPIO_selectInterruptEdge(SET_BTN_PORT, SET_BTN_PIN,
+                             GPIO_HIGH_TO_LOW_TRANSITION);
+    GPIO_selectInterruptEdge(NEXT_BTN_PORT, NEXT_BTN_PIN,
+                             GPIO_HIGH_TO_LOW_TRANSITION);
+
+    GPIO_clearInterrupt(SET_BTN_PORT, SET_BTN_PIN);
+    GPIO_clearInterrupt(NEXT_BTN_PORT, NEXT_BTN_PIN);
+
 }
 
 void Timer_Init(void) {
@@ -202,21 +217,22 @@ void main(void)
     dir_mode = FRONT_MODE;
     op_mode = SETUP_MODE;
 
-//    led_d1 = 580;
-//    led_d2 = 580 * 2;
-//    led_d3 = 580 * 4;
-//    led_d4 = 580 * 8;
-//
-//    beep_d1 = 580 * 2;
-//    beep_d2 = 580 * 4;
+    led_d1 = 580;
+    led_d2 = 580 * 2;
+    led_d3 = 580 * 4;
+    led_d4 = 580 * 8;
 
-    led_d1 = 20;
+    beep_d1 = 580 * 2;
+    beep_d2 = 580 * 4;
+
+
+/*    led_d1 = 20;
     led_d2 = 20 * 2;
     led_d3 = 20 * 6;
     led_d4 = 20 * 12;
 
     beep_d1 = 20 * 2;
-    beep_d2 = 20 * 4;
+    beep_d2 = 20 * 4;*/
 
     Pin_Init();
 
@@ -224,12 +240,16 @@ void main(void)
 
     Init_LCD();
 
+    PMM_unlockLPM5();
+
     next = 0;
     temp_val = 0;
 
-    // SETUP mode: Use set button to incr distance by 20, use next button to move to next setting
-    displayScrollText("SETUP");
+    __enable_interrupt();
 
+    // SETUP mode: Use set button to incr distance by 20, use next button to move to next setting
+/*
+    displayScrollText("SETUP");
 
     displayScrollText("FRONT1");
 
@@ -295,17 +315,19 @@ void main(void)
     next = 0;
     beep_d2 = temp_val * 58;
     temp_val = 0;
+*/
 
 
     /*
      * Disable the GPIO power-on default high-impedance mode to activate
      * previously configured port settings
      */
-    PMM_unlockLPM5();
 
     //Start both counters
     Timer_A_startCounter(TIMER_A1_BASE, TIMER_A_CONTINUOUS_MODE);
     Timer_A_startCounter(TIMER_A0_BASE, TIMER_A_UP_MODE);
+
+    op_mode = USER_MODE;
 
     //Enter LPM0, enable interrupts
     __bis_SR_register(LPM0_bits + GIE);
@@ -329,7 +351,7 @@ void P1_ISR(void)
     if (op_mode == SETUP_MODE) {
         GPIO_disableInterrupt(SET_BTN_PORT, SET_BTN_PIN);
 
-        __delay_cycles(10000);
+        __delay_cycles(10);
 
         temp_val += 20;
 
@@ -356,7 +378,7 @@ void P1_ISR(void)
     {
         Timer_A_stop(TIMER_A0_BASE);
         ct = Timer_A_getCounterValue(TIMER_A0_BASE);
-        showInt(ct / 58);
+//        showInt(ct / 58);
 
         if (ct < beep_d1)
         {
@@ -368,7 +390,7 @@ void P1_ISR(void)
         }
 
         listening_for_rising_edge = 1;
-        GPIO_selectInterruptEdge(ECHO_PORT1, ECHO_PIN1,
+        GPIO_selectInterruptEdge(ECHO1_PORT, ECHO1_PIN,
                                  GPIO_LOW_TO_HIGH_TRANSITION);
 
         GPIO_disableInterrupt(ECHO1_PORT, ECHO1_PIN);
@@ -394,7 +416,7 @@ void P2_ISR(void)
     if (op_mode == SETUP_MODE) {
         GPIO_disableInterrupt(NEXT_BTN_PORT, NEXT_BTN_PIN);
 
-        __delay_cycles(10000);
+        __delay_cycles(10);
 
         next = 1;
 
@@ -445,6 +467,7 @@ void P2_ISR(void)
         {
             all_off();
         }
+
         listening_for_rising_edge = 1;
         GPIO_selectInterruptEdge(ECHO2_PORT, ECHO2_PIN,
                                  GPIO_LOW_TO_HIGH_TRANSITION);
@@ -482,26 +505,32 @@ void TIMER1_A0_ISR(void)
 
         GPIO_clearInterrupt(ECHO1_PORT, ECHO1_PIN);
     } else {
-        GPIO_disableInterrupt(ECHO1_PORT, ECHO1_PIN);
         GPIO_enableInterrupt(ECHO2_PORT, ECHO2_PIN);
+        GPIO_disableInterrupt(ECHO1_PORT, ECHO1_PIN);
 
         GPIO_clearInterrupt(ECHO2_PORT, ECHO2_PIN);
     }
 
     if (wait_dur_ct <= WAIT_CT)
     {
+        all_off();
         // Set next interrupting value for CCR0
         incr_amt = WAIT_DUR;
 
         // Set TRIG to low
-        GPIO_setOutputLowOnPin(TRIG_PORT1, TRIG_PIN1);
+//        GPIO_setOutputLowOnPin(TRIG_PORT, TRIG_PIN);
 
         wait_dur_ct++;
     }
     else
     {
+        grn_on();
         incr_amt = TRIG_DUR;
-        GPIO_setOutputHighOnPin(TRIG_PORT1, TRIG_PIN1);
+
+        GPIO_setOutputHighOnPin(TRIG_PORT, TRIG_PIN);
+        __delay_cycles(10);
+        GPIO_setOutputLowOnPin(TRIG_PORT, TRIG_PIN);
+
         wait_dur_ct = 0;
     }
 
