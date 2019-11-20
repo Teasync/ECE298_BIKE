@@ -257,6 +257,32 @@ void showChar(char c, int position)
     }
 }
 
+void showCharOnTop(char c, int position)
+{
+    if (c >= '0' && c <= '9')
+    {
+        // Display digit
+        LCDMEMW[position/2] |= digit[c-48][0] | (digit[c-48][1] << 8);
+    }
+    else if (c >= 'A' && c <= 'Z')
+    {
+        // Display alphabet
+        LCDMEMW[position/2] |= alphabetBig[c-65][0] | (alphabetBig[c-65][1] << 8);
+    }
+    else if (c >= 'a' && c <= 'z') {
+        LCDMEMW[position/2] |= alphabetSmall[c-'a'][0] | (alphabetSmall[c-'a'][1] << 8);
+
+    }
+}
+
+void showOnTop(char lower, char upper, int position) {
+    LCDMEMW[position/2] |= (lower | upper << 8);
+}
+
+void showOverwrite(char lower, char upper, int position) {
+    LCDMEMW[position/2] = lower | upper << 8;
+}
+
 /*
  * Displays hex value
  */
@@ -282,20 +308,22 @@ void showInt(uint16_t num) {
     showChar('0' + num % 10, pos1);
 }
 
-void showIntFirst3(uint16_t num) {
-    showChar('0' + num % 10, pos6);
-    num /= 10;
-    showChar('0' + num % 10, pos5);
-    num /= 10;
-    showChar('0' + num % 10, pos4);
+void showIntF(uint16_t dist_cm) {
+    dist_cm /= 10;
+    showChar('F', pos1);
+    showChar('0' + dist_cm % 10, pos3);
+    dist_cm /= 10;
+    showChar('0' + dist_cm % 10, pos2);
+    showOnTop(dp[1][0], dp[1][1], (int) dp[1][2]);
 }
 
-void showIntLast3(uint16_t num) {
-    showChar('0' + num % 10, pos3);
-    num /= 10;
-    showChar('0' + num % 10, pos2);
-    num /= 10;
-    showChar('0' + num % 10, pos1);
+void showIntB(uint16_t dist_cm) {
+    dist_cm /= 10;
+    showChar('R', pos4);
+    showChar('0' + dist_cm % 10, pos6);
+    dist_cm /= 10;
+    showChar('0' + dist_cm % 10, pos5);
+    showOnTop(dp[4][0], dp[4][1], (int) dp[4][2]);
 }
 
 /*
@@ -309,5 +337,6 @@ void clearLCD()
     LCDMEMW[pos4/2] = 0;
     LCDMEMW[pos5/2] = 0;
     LCDMEMW[pos6/2] = 0;
+    LCDMEMW[6] = 0;
     LCDMEM[12] = LCDMEM[13] = 0;
 }

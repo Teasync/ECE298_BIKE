@@ -72,7 +72,10 @@ void showChar(char, int);
 void showHex(int hex);
 void showInt(uint16_t num);
 void clearLCD(void);
-void showIntFirst3(uint16_t num);
-void showIntLast3(uint16_t num);
+void showIntF(uint16_t dist_cm);
+void showIntB(uint16_t dist_cm);
+void showOverwrite(char lower, char upper, int position);
+void showOnTop(char lower, char upper, int position);
+void showCharOnTop(char c, int position);
 
 #endif /* HAL_LCD_H_ */

@@ -86,8 +86,18 @@ void main(void)
 
     __enable_interrupt();
 
+    int i = 0;
+
     while(1) {
-        displayScrollText("abcdefghijklmnopqrstuvwxyz");
+        showIntF(i);
+        showIntB(999 - i);
+
+        __delay_cycles(1000);
+
+        if (i == 999)
+            i = 0;
+        else
+            ++i;
     }
 
     // SETUP mode: Use set button to incr distance by 20, use next button to move to next setting
@@ -182,7 +192,7 @@ void main(void)
 
     while(1) {
         if (front_value_flag) {
-            showIntFirst3(front_value / 58);
+            showIntF(front_value / 58);
 
             if (front_value < beep_d1)
             {
@@ -197,7 +207,7 @@ void main(void)
         }
 
         if (back_value_flag) {
-            showIntLast3(back_value / 58);
+            showIntB(back_value / 58);
 
             if (back_value < led_d1)
             {
@@ -363,6 +373,7 @@ void TIMER1_A0_ISR(void)
         incr_amt = TRIG_DUR;
         wait_dur_ct = 0;
         trig_pulse = 1;
+        __
         GPIO_setOutputHighOnPin(TRIG_PORT, TRIG_PIN);
     }
 
