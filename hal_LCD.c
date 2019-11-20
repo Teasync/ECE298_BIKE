@@ -216,6 +216,22 @@ void showInt(uint16_t num) {
     showChar('0' + num % 10, pos1);
 }
 
+void showIntFirst3(uint16_t num) {
+    showChar('0' + num % 10, pos6);
+    num /= 10;
+    showChar('0' + num % 10, pos5);
+    num /= 10;
+    showChar('0' + num % 10, pos4);
+}
+
+void showIntLast3(uint16_t num) {
+    showChar('0' + num % 10, pos3);
+    num /= 10;
+    showChar('0' + num % 10, pos2);
+    num /= 10;
+    showChar('0' + num % 10, pos1);
+}
+
 /*
  * Clears memories to all 6 digits on the LCD
  */
