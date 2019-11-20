@@ -86,6 +86,10 @@ void main(void)
 
     __enable_interrupt();
 
+    while(1) {
+        displayScrollText("abcdefghijklmnopqrstuvwxyz");
+    }
+
     // SETUP mode: Use set button to incr distance by 20, use next button to move to next setting
 /*
     displayScrollText("SETUP");
