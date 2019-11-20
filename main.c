@@ -12,9 +12,6 @@
 #include "util.h"
 
 
-#define WAIT_DUR 20000
-#define WAIT_CT 20
-
 volatile uint16_t ct = 0xFFFF;
 volatile uint16_t poll = 1;
 volatile uint32_t wait_dur_ct = 0;
@@ -86,19 +83,6 @@ void main(void)
 
     __enable_interrupt();
 
-    int i = 0;
-
-    while(1) {
-        showIntF(i);
-        showIntB(999 - i);
-
-        __delay_cycles(1000);
-
-        if (i == 999)
-            i = 0;
-        else
-            ++i;
-    }
 
     // SETUP mode: Use set button to incr distance by 20, use next button to move to next setting
 /*
@@ -182,7 +166,7 @@ void main(void)
 
     //Start both counters
     Timer_A_startCounter(TIMER_A1_BASE, TIMER_A_CONTINUOUS_MODE);
-    Timer_A_startCounter(TIMER_A0_BASE, TIMER_A_UP_MODE);
+//    Timer_A_startCounter(TIMER_A0_BASE, TIMER_A_UP_MODE);
 
     op_mode = USER_MODE;
     dir_mode = FRONT_MODE;
@@ -233,10 +217,23 @@ void main(void)
             back_value_flag = 0;
         }
 
+        // Send a trigger pulse signal
+        if (trig_pulse && wait_dur_ct >= WAIT_CT) {
+            __disable_interrupt();
+            GPIO_setOutputHighOnPin(LED_PORT, LED_PIN);
+            GPIO_setOutputHighOnPin(TRIG_PORT, TRIG_PIN);
+            __delay_cycles(10);
+            GPIO_setOutputLowOnPin(TRIG_PORT, TRIG_PIN);
+            GPIO_setOutputLowOnPin(LED_PORT, LED_PIN);
+            __enable_interrupt();
+            wait_dur_ct = 0;
+        } else if (trig_pulse) {
+            wait_dur_ct += 1;
+        }
     }
 
     //For debugger
-//    __no_operation();
+    __no_operation();
 }
 
 //PORT1 interrupt vector service routine
@@ -353,33 +350,16 @@ void TIMER1_A0_ISR(void)
 {
 
     // Main polling interrupt
-
     uint16_t curr = Timer_A_getCaptureCompareCount(
             TIMER_A1_BASE, TIMER_A_CAPTURECOMPARE_REGISTER_0);
-    uint16_t incr_amt;
 
-    if (wait_dur_ct <= WAIT_CT)
-    {
-        if (trig_pulse) {
-            GPIO_setOutputLowOnPin(TRIG_PORT, TRIG_PIN);
-            trig_pulse = 0;
-        }
-        // Set next interrupting value for CCR0
-        incr_amt = WAIT_DUR;
-        wait_dur_ct++;
-    }
-    else
-    {
-        incr_amt = TRIG_DUR;
-        wait_dur_ct = 0;
-        trig_pulse = 1;
-        __
-        GPIO_setOutputHighOnPin(TRIG_PORT, TRIG_PIN);
-    }
+    trig_pulse = 1;
 
-    uint16_t compVal = curr + incr_amt;
+    uint16_t compVal = curr + WAIT_DUR;
 
     //Add Offset to CCR0
     Timer_A_setCompareValue(TIMER_A1_BASE, TIMER_A_CAPTURECOMPARE_REGISTER_0,
                             compVal);
+
+    Timer_A_clearCaptureCompareInterrupt(TIMER_A1_BASE, TIMER_A_CAPTURECOMPARE_REGISTER_0);
 }

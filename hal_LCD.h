@@ -53,6 +53,12 @@
 #define pos5 2   /* Digit A5 - L2  */
 #define pos6 18  /* Digit A6 - L18 */
 
+// Define showBits modes
+#define OVERWRITE 0
+#define TOGGLE 1
+#define SET 2
+#define CLEAR 3
+
 // Define word access definitions to LCD memories
 #define LCDMEMW ((int*)LCDMEM)
 
@@ -74,8 +80,9 @@ void showInt(uint16_t num);
 void clearLCD(void);
 void showIntF(uint16_t dist_cm);
 void showIntB(uint16_t dist_cm);
-void showOverwrite(char lower, char upper, int position);
-void showOnTop(char lower, char upper, int position);
+void showBits(char lower, char upper, char position, char mode);
 void showCharOnTop(char c, int position);
+void showExcl(void);
+void hideExcl(void);
 
 #endif /* HAL_LCD_H_ */

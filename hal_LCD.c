@@ -275,12 +275,29 @@ void showCharOnTop(char c, int position)
     }
 }
 
-void showOnTop(char lower, char upper, int position) {
-    LCDMEMW[position/2] |= (lower | upper << 8);
+void showBits(char lower, char upper, char position, char mode) {
+    switch (mode) {
+    case OVERWRITE:
+        LCDMEMW[position/2] |= (lower | upper << 8);
+        break;
+    case TOGGLE:
+        LCDMEMW[position/2] ^= (lower | upper << 8);
+        break;
+    case SET:
+        LCDMEMW[position/2] = (lower | upper << 8);
+        break;
+    case CLEAR:
+        LCDMEMW[position/2] &= ~(lower | upper << 8);
+        break;
+    }
 }
 
-void showOverwrite(char lower, char upper, int position) {
-    LCDMEMW[position/2] = lower | upper << 8;
+void showExcl(void) {
+    showBits(excl[0], excl[1], excl[2], SET);
+}
+
+void hideExcl(void) {
+    showBits(excl[0], excl[1], excl[2], CLEAR);
 }
 
 /*
@@ -314,7 +331,7 @@ void showIntF(uint16_t dist_cm) {
     showChar('0' + dist_cm % 10, pos3);
     dist_cm /= 10;
     showChar('0' + dist_cm % 10, pos2);
-    showOnTop(dp[1][0], dp[1][1], (int) dp[1][2]);
+    showBits(dp[1][0], dp[1][1], dp[1][2], SET);
 }
 
 void showIntB(uint16_t dist_cm) {
@@ -323,7 +340,7 @@ void showIntB(uint16_t dist_cm) {
     showChar('0' + dist_cm % 10, pos6);
     dist_cm /= 10;
     showChar('0' + dist_cm % 10, pos5);
-    showOnTop(dp[4][0], dp[4][1], (int) dp[4][2]);
+    showBits(dp[4][0], dp[4][1], dp[4][2], SET);
 }
 
 /*

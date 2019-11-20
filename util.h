@@ -5,6 +5,10 @@
 #include <stdio.h>
 #include <hal_LCD.h>
 
+
+#define WAIT_DUR 20000
+#define WAIT_CT 100
+
 #define LED_PORT GPIO_PORT_P4
 #define LED_PIN GPIO_PIN0
 

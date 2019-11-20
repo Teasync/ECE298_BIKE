@@ -80,7 +80,7 @@ void Timer_Init(void) {
     initCompParam.compareInterruptEnable =
             TIMER_A_CAPTURECOMPARE_INTERRUPT_ENABLE;
     initCompParam.compareOutputMode = TIMER_A_OUTPUTMODE_OUTBITVALUE;
-    initCompParam.compareValue = TRIG_DUR;
+    initCompParam.compareValue = WAIT_DUR;
     Timer_A_initCompareMode(TIMER_A1_BASE, &initCompParam);
 }
 
@@ -93,16 +93,19 @@ void Pin_Init(void) {
     GPIO_setOutputLowOnPin(BUZZ_PORT, BUZZ_PIN);
 
     GPIO_setAsOutputPin(LED_GRN_PORT, LED_GRN_PIN);
-    GPIO_setOutputHighOnPin(LED_GRN_PORT, LED_GRN_PIN);
+    GPIO_setOutputLowOnPin(LED_GRN_PORT, LED_GRN_PIN);
 
     GPIO_setAsOutputPin(LED_RED_PORT, LED_RED_PIN);
-    GPIO_setOutputHighOnPin(LED_RED_PORT, LED_RED_PIN);
+    GPIO_setOutputLowOnPin(LED_RED_PORT, LED_RED_PIN);
 
     GPIO_setAsOutputPin(LED_YLW_PORT, LED_YLW_PIN);
-    GPIO_setOutputHighOnPin(LED_YLW_PORT, LED_YLW_PIN);
+    GPIO_setOutputLowOnPin(LED_YLW_PORT, LED_YLW_PIN);
 
     GPIO_setAsOutputPin(LED_ORG_PORT, LED_ORG_PIN);
-    GPIO_setOutputHighOnPin(LED_ORG_PORT, LED_ORG_PIN);
+    GPIO_setOutputLowOnPin(LED_ORG_PORT, LED_ORG_PIN);
+
+    GPIO_setAsOutputPin(LED_PORT, LED_PIN);
+    GPIO_setOutputLowOnPin(LED_PORT, LED_PIN);
 
     //Set input pins
     GPIO_setAsInputPinWithPullUpResistor(ECHO1_PORT, ECHO1_PIN);
