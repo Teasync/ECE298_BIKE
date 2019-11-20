@@ -41,6 +41,8 @@ volatile uint16_t trig_pulse;
 
 Timer_A_initUpModeParam initUpParam0 = { 0 };
 
+volatile uint16_t last_front_value = 0;
+volatile uint16_t last_back_value = 0;
 
 
 void main(void)
@@ -53,22 +55,13 @@ void main(void)
     dir_mode = FRONT_MODE;
     op_mode = SETUP_MODE;
 
-    led_d1 = 580;
-    led_d2 = 580 * 2;
-    led_d3 = 580 * 4;
-    led_d4 = 580 * 8;
+    led_d1 = 580 * 2;
+    led_d2 = 580 * 4;
+    led_d3 = 580 * 8;
+    led_d4 = 580 * 16;
 
     beep_d1 = 580 * 2;
     beep_d2 = 580 * 4;
-
-
-/*    led_d1 = 20;
-    led_d2 = 20 * 2;
-    led_d3 = 20 * 6;
-    led_d4 = 20 * 12;
-
-    beep_d1 = 20 * 2;
-    beep_d2 = 20 * 4;*/
 
     Pin_Init();
 
@@ -77,6 +70,8 @@ void main(void)
     Init_LCD();
 
     PMM_unlockLPM5();
+    Init_UART();    //Sets up an echo over a COM port
+
 
     next = 0;
     temp_val = 0;
@@ -85,74 +80,74 @@ void main(void)
 
 
     // SETUP mode: Use set button to incr distance by 20, use next button to move to next setting
-/*
-    displayScrollText("SETUP");
 
-    displayScrollText("FRONT1");
+//    displayScrollText("SETUP");
+//
+//    displayScrollText("FRONT1");
+//
+//    temp_val = led_d1;
+//    while (!next) {
+//        showInt(temp_val);
+//    }
+//    next = 0;
+//    led_d1 = temp_val * 58;
+//    temp_val = 0;
+//
+//
+//    displayScrollText("FRONT2");
+//
+//    temp_val = led_d2;
+//    while (!next) {
+//        showInt(temp_val);
+//    }
+//    next = 0;
+//    led_d2 = temp_val * 58;
+//    temp_val = 0;
+//
+//
+//    displayScrollText("FRONT3");
+//
+//    temp_val = led_d3;
+//    while (!next) {
+//        showInt(temp_val);
+//    }
+//    next = 0;
+//    led_d3 = temp_val * 58;
+//    temp_val = 0;
+//
+//
+//    displayScrollText("FRONT4");
+//
+//    temp_val = led_d4;
+//    while (!next) {
+//        showInt(temp_val);
+//    }
+//    next = 0;
+//    led_d4 = temp_val * 58;
+//    temp_val = 0;
+//
+//
+//    displayScrollText("BACK1");
+//
+//    temp_val = beep_d1;
+//    while (!next) {
+//        showInt(temp_val);
+//    }
+//    next = 0;
+//    beep_d1 = temp_val * 58;
+//    temp_val = 0;
+//
+//
+//    displayScrollText("BACK2");
+//
+//    temp_val = beep_d2;
+//    while (!next) {
+//        showInt(temp_val);
+//    }
+//    next = 0;
+//    beep_d2 = temp_val * 58;
+//    temp_val = 0;
 
-    temp_val = led_d1;
-    while (!next) {
-        showInt(temp_val);
-    }
-    next = 0;
-    led_d1 = temp_val * 58;
-    temp_val = 0;
-
-
-    displayScrollText("FRONT2");
-
-    temp_val = led_d2;
-    while (!next) {
-        showInt(temp_val);
-    }
-    next = 0;
-    led_d2 = temp_val * 58;
-    temp_val = 0;
-
-
-    displayScrollText("FRONT3");
-
-    temp_val = led_d3;
-    while (!next) {
-        showInt(temp_val);
-    }
-    next = 0;
-    led_d3 = temp_val * 58;
-    temp_val = 0;
-
-
-    displayScrollText("FRONT4");
-
-    temp_val = led_d4;
-    while (!next) {
-        showInt(temp_val);
-    }
-    next = 0;
-    led_d4 = temp_val * 58;
-    temp_val = 0;
-
-
-    displayScrollText("BACK1");
-
-    temp_val = beep_d1;
-    while (!next) {
-        showInt(temp_val);
-    }
-    next = 0;
-    beep_d1 = temp_val * 58;
-    temp_val = 0;
-
-
-    displayScrollText("BACK2");
-
-    temp_val = beep_d2;
-    while (!next) {
-        showInt(temp_val);
-    }
-    next = 0;
-    beep_d2 = temp_val * 58;
-    temp_val = 0;
-*/
 
 
     /*
@@ -171,11 +166,13 @@ void main(void)
     op_mode = USER_MODE;
     dir_mode = FRONT_MODE;
 
+
     //Enter LPM0, enable interrupts
 //    __bis_SR_register(LPM0_bits + GIE);
 
     while(1) {
         if (front_value_flag) {
+            front_value = front_value >> 1 + last_front_value >> 1;
             showIntF(front_value / 58);
 
             if (front_value < beep_d1)
@@ -186,11 +183,12 @@ void main(void)
             {
                 beep(250, 50);
             }
-
+            GPIO_enableInterrupt(ECHO2_PORT, ECHO2_PIN);
             front_value_flag = 0;
         }
 
         if (back_value_flag) {
+            back_value = back_value >> 1 + last_back_value >> 1;
             showIntB(back_value / 58);
 
             if (back_value < led_d1)
@@ -213,22 +211,29 @@ void main(void)
             {
                 all_off();
             }
-
+            GPIO_enableInterrupt(ECHO1_PORT, ECHO1_PIN);
             back_value_flag = 0;
         }
 
         // Send a trigger pulse signal
         if (trig_pulse && wait_dur_ct >= WAIT_CT) {
             __disable_interrupt();
+
             GPIO_setOutputHighOnPin(LED_PORT, LED_PIN);
             GPIO_setOutputHighOnPin(TRIG_PORT, TRIG_PIN);
+
             __delay_cycles(10);
+
             GPIO_setOutputLowOnPin(TRIG_PORT, TRIG_PIN);
             GPIO_setOutputLowOnPin(LED_PORT, LED_PIN);
+
             __enable_interrupt();
+
             wait_dur_ct = 0;
+            trig_pulse = 0;
         } else if (trig_pulse) {
             wait_dur_ct += 1;
+            trig_pulse = 0;
         }
     }
 
@@ -332,9 +337,9 @@ void P2_ISR(void)
         dir_mode = FRONT_MODE;
     }
 
-    //    beep(50);
+//        beep(50);
 
-    GPIO_clearInterrupt(ECHO2_PORT, ECHO1_PIN);
+    GPIO_clearInterrupt(ECHO2_PORT, ECHO2_PIN);
 }
 
 

@@ -331,7 +331,7 @@ void showIntF(uint16_t dist_cm) {
     showChar('0' + dist_cm % 10, pos3);
     dist_cm /= 10;
     showChar('0' + dist_cm % 10, pos2);
-    showBits(dp[1][0], dp[1][1], dp[1][2], SET);
+    showBits(dp[1][0], dp[1][1], dp[1][2], OVERWRITE);
 }
 
 void showIntB(uint16_t dist_cm) {
@@ -340,7 +340,7 @@ void showIntB(uint16_t dist_cm) {
     showChar('0' + dist_cm % 10, pos6);
     dist_cm /= 10;
     showChar('0' + dist_cm % 10, pos5);
-    showBits(dp[4][0], dp[4][1], dp[4][2], SET);
+    showBits(dp[4][0], dp[4][1], dp[4][2], OVERWRITE);
 }
 
 /*

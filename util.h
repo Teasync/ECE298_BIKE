@@ -7,7 +7,7 @@
 
 
 #define WAIT_DUR 20000
-#define WAIT_CT 100
+#define WAIT_CT 5
 
 #define LED_PORT GPIO_PORT_P4
 #define LED_PIN GPIO_PIN0
@@ -63,3 +63,4 @@ void all_off(void);
 void beep(int pulse_per, int total_time);
 void Timer_Init(void);
 void Pin_Init(void);
+void Init_UART(void);
