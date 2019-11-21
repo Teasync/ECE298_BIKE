@@ -13,8 +13,8 @@
 
 
 volatile uint16_t ct = 0xFFFF;
-volatile uint16_t poll = 1;
-volatile uint32_t wait_dur_ct = 0;
+uint16_t wait_inner = 0;
+uint16_t wait_outer = 0;
 volatile uint16_t listening_for_rising_edge = 1;
 
 volatile uint16_t led_d1;
@@ -70,8 +70,6 @@ void main(void)
     Init_LCD();
 
     PMM_unlockLPM5();
-    Init_UART();    //Sets up an echo over a COM port
-
 
     next = 0;
     temp_val = 0;
@@ -87,10 +85,10 @@ void main(void)
 //
 //    temp_val = led_d1;
 //    while (!next) {
-//        showInt(temp_val);
+//        showInt(temp_val / 58);
 //    }
 //    next = 0;
-//    led_d1 = temp_val * 58;
+//    led_d1 = temp_val;
 //    temp_val = 0;
 //
 //
@@ -98,10 +96,10 @@ void main(void)
 //
 //    temp_val = led_d2;
 //    while (!next) {
-//        showInt(temp_val);
+//        showInt(temp_val / 58);
 //    }
 //    next = 0;
-//    led_d2 = temp_val * 58;
+//    led_d2 = temp_val;
 //    temp_val = 0;
 //
 //
@@ -109,10 +107,10 @@ void main(void)
 //
 //    temp_val = led_d3;
 //    while (!next) {
-//        showInt(temp_val);
+//        showInt(temp_val / 58);
 //    }
 //    next = 0;
-//    led_d3 = temp_val * 58;
+//    led_d3 = temp_val;
 //    temp_val = 0;
 //
 //
@@ -120,10 +118,10 @@ void main(void)
 //
 //    temp_val = led_d4;
 //    while (!next) {
-//        showInt(temp_val);
+//        showInt(temp_val / 58);
 //    }
 //    next = 0;
-//    led_d4 = temp_val * 58;
+//    led_d4 = temp_val;
 //    temp_val = 0;
 //
 //
@@ -131,10 +129,10 @@ void main(void)
 //
 //    temp_val = beep_d1;
 //    while (!next) {
-//        showInt(temp_val);
+//        showInt(temp_val / 58);
 //    }
 //    next = 0;
-//    beep_d1 = temp_val * 58;
+//    beep_d1 = temp_val;
 //    temp_val = 0;
 //
 //
@@ -142,13 +140,13 @@ void main(void)
 //
 //    temp_val = beep_d2;
 //    while (!next) {
-//        showInt(temp_val);
+//        showInt(temp_val / 58);
 //    }
 //    next = 0;
-//    beep_d2 = temp_val * 58;
+//    beep_d2 = temp_val;
 //    temp_val = 0;
-
-
+//
+//
 
     /*
      * Disable the GPIO power-on default high-impedance mode to activate
@@ -159,8 +157,11 @@ void main(void)
     GPIO_enableInterrupt(ECHO1_PORT, ECHO1_PIN);
     GPIO_disableInterrupt(ECHO2_PORT, ECHO2_PIN);
 
+    GPIO_disableInterrupt(SET_BTN_PORT, SET_BTN_PIN);
+    GPIO_disableInterrupt(NEXT_BTN_PORT, NEXT_BTN_PIN);
+
     //Start both counters
-    Timer_A_startCounter(TIMER_A1_BASE, TIMER_A_CONTINUOUS_MODE);
+//    Timer_A_startCounter(TIMER_A1_BASE, TIMER_A_CONTINUOUS_MODE);
 //    Timer_A_startCounter(TIMER_A0_BASE, TIMER_A_UP_MODE);
 
     op_mode = USER_MODE;
@@ -171,70 +172,27 @@ void main(void)
 //    __bis_SR_register(LPM0_bits + GIE);
 
     while(1) {
-        if (front_value_flag) {
-            front_value = front_value >> 1 + last_front_value >> 1;
-            showIntF(front_value / 58);
-
-            if (front_value < beep_d1)
-            {
-                beep(125, 100);
-            }
-            else if (front_value < beep_d2)
-            {
-                beep(250, 50);
-            }
-            GPIO_enableInterrupt(ECHO2_PORT, ECHO2_PIN);
-            front_value_flag = 0;
+        if (wait_inner >= WAIT_DUR) {
+            ++wait_outer;
+            wait_inner = 0;
+        } else {
+            ++wait_inner;
         }
 
-        if (back_value_flag) {
-            back_value = back_value >> 1 + last_back_value >> 1;
-            showIntB(back_value / 58);
-
-            if (back_value < led_d1)
-            {
-                red_on();
-            }
-            else if (back_value < led_d2)
-            {
-                org_on();
-            }
-            else if (back_value < led_d3)
-            {
-                ylw_on();
-            }
-            else if (back_value < led_d4)
-            {
-                grn_on();
-            }
-            else
-            {
-                all_off();
-            }
-            GPIO_enableInterrupt(ECHO1_PORT, ECHO1_PIN);
-            back_value_flag = 0;
-        }
-
-        // Send a trigger pulse signal
-        if (trig_pulse && wait_dur_ct >= WAIT_CT) {
+        if (wait_outer >= WAIT_CT) {
             __disable_interrupt();
 
-            GPIO_setOutputHighOnPin(LED_PORT, LED_PIN);
             GPIO_setOutputHighOnPin(TRIG_PORT, TRIG_PIN);
 
             __delay_cycles(10);
 
             GPIO_setOutputLowOnPin(TRIG_PORT, TRIG_PIN);
-            GPIO_setOutputLowOnPin(LED_PORT, LED_PIN);
 
             __enable_interrupt();
-
-            wait_dur_ct = 0;
-            trig_pulse = 0;
-        } else if (trig_pulse) {
-            wait_dur_ct += 1;
-            trig_pulse = 0;
+            wait_outer = 0;
         }
+
+        // Send a trigger pulse signal
     }
 
     //For debugger
@@ -256,9 +214,9 @@ void P1_ISR(void)
     if (op_mode == SETUP_MODE) {
         GPIO_disableInterrupt(SET_BTN_PORT, SET_BTN_PIN);
 
-        __delay_cycles(100);
+        __delay_cycles(10000);
 
-        temp_val += 20;
+        temp_val += 580 * 2;
 
         GPIO_clearInterrupt(SET_BTN_PORT, SET_BTN_PIN);
         GPIO_enableInterrupt(SET_BTN_PORT, SET_BTN_PIN);
@@ -276,15 +234,26 @@ void P1_ISR(void)
     else
     {
         Timer_A_stop(TIMER_A0_BASE);
-        front_value = Timer_A_getCounterValue(TIMER_A0_BASE);
-        front_value_flag = 1;
 
         listening_for_rising_edge = 1;
         GPIO_selectInterruptEdge(ECHO1_PORT, ECHO1_PIN,
                                  GPIO_LOW_TO_HIGH_TRANSITION);
 
         GPIO_disableInterrupt(ECHO1_PORT, ECHO1_PIN);
-        dir_mode = BACK_MODE;
+
+        front_value = Timer_A_getCounterValue(TIMER_A0_BASE);
+        showIntF(front_value / 58);
+
+        if (front_value < beep_d1)
+        {
+            beep(60, 40);
+        }
+        else if (front_value < beep_d2)
+        {
+            beep(120, 20);
+        }
+
+        GPIO_enableInterrupt(ECHO2_PORT, ECHO2_PIN);
     }
 
     GPIO_clearInterrupt(ECHO1_PORT, ECHO1_PIN);
@@ -304,7 +273,7 @@ void P2_ISR(void)
     if (op_mode == SETUP_MODE) {
         GPIO_disableInterrupt(NEXT_BTN_PORT, NEXT_BTN_PIN);
 
-        __delay_cycles(100);
+        __delay_cycles(1000);
 
         next = 1;
 
@@ -317,24 +286,46 @@ void P2_ISR(void)
 
     if (listening_for_rising_edge == 1)
     {
-        Timer_A_initUpMode(TIMER_A0_BASE, &initUpParam0);
-        Timer_A_startCounter(TIMER_A0_BASE, TIMER_A_UP_MODE);
+        Timer_A_initUpMode(TIMER_A1_BASE, &initUpParam0);
+        Timer_A_startCounter(TIMER_A1_BASE, TIMER_A_UP_MODE);
         listening_for_rising_edge = 0;
         GPIO_selectInterruptEdge(ECHO2_PORT, ECHO2_PIN,
                                  GPIO_HIGH_TO_LOW_TRANSITION);
     }
     else
     {
-        Timer_A_stop(TIMER_A0_BASE);
-        back_value = Timer_A_getCounterValue(TIMER_A0_BASE);
-        back_value_flag = 1;
+        Timer_A_stop(TIMER_A1_BASE);
 
         listening_for_rising_edge = 1;
         GPIO_selectInterruptEdge(ECHO2_PORT, ECHO2_PIN,
                                  GPIO_LOW_TO_HIGH_TRANSITION);
 
         GPIO_disableInterrupt(ECHO2_PORT, ECHO2_PIN);
-        dir_mode = FRONT_MODE;
+
+        back_value = Timer_A_getCounterValue(TIMER_A1_BASE);
+        showIntB(back_value / 58);
+
+        if (back_value < led_d1)
+        {
+            red_on();
+        }
+        else if (back_value < led_d2)
+        {
+            org_on();
+        }
+        else if (back_value < led_d3)
+        {
+            ylw_on();
+        }
+        else if (back_value < led_d4)
+        {
+            grn_on();
+        }
+        else
+        {
+            all_off();
+        }
+        GPIO_enableInterrupt(ECHO1_PORT, ECHO1_PIN);
     }
 
 //        beep(50);
@@ -344,27 +335,27 @@ void P2_ISR(void)
 
 
 //TIMER1_A0 interrupt vector service routine.
-#if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
-#pragma vector=TIMER1_A0_VECTOR
-__interrupt
-#elif defined(__GNUC__)
-__attribute__((interrupt(TIMER1_A0_VECTOR)))
-#endif
-
-void TIMER1_A0_ISR(void)
-{
-
-    // Main polling interrupt
-    uint16_t curr = Timer_A_getCaptureCompareCount(
-            TIMER_A1_BASE, TIMER_A_CAPTURECOMPARE_REGISTER_0);
-
-    trig_pulse = 1;
-
-    uint16_t compVal = curr + WAIT_DUR;
-
-    //Add Offset to CCR0
-    Timer_A_setCompareValue(TIMER_A1_BASE, TIMER_A_CAPTURECOMPARE_REGISTER_0,
-                            compVal);
-
-    Timer_A_clearCaptureCompareInterrupt(TIMER_A1_BASE, TIMER_A_CAPTURECOMPARE_REGISTER_0);
-}
+//#if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
+//#pragma vector=TIMER1_A0_VECTOR
+//__interrupt
+//#elif defined(__GNUC__)
+//__attribute__((interrupt(TIMER1_A0_VECTOR)))
+//#endif
+//
+//void TIMER1_A0_ISR(void)
+//{
+//
+//    // Main polling interrupt
+//    uint16_t curr = Timer_A_getCaptureCompareCount(
+//            TIMER_A1_BASE, TIMER_A_CAPTURECOMPARE_REGISTER_0);
+//
+//    trig_pulse = 1;
+//
+//    uint16_t compVal = curr + WAIT_DUR;
+//
+//    //Add Offset to CCR0
+//    Timer_A_setCompareValue(TIMER_A1_BASE, TIMER_A_CAPTURECOMPARE_REGISTER_0,
+//                            compVal);
+//
+//    Timer_A_clearCaptureCompareInterrupt(TIMER_A1_BASE, TIMER_A_CAPTURECOMPARE_REGISTER_0);
+//}
