@@ -50,8 +50,6 @@ void main(void)
     //Stop Watchdog Timer
     WDT_A_hold(WDT_A_BASE);
 
-    // TODO: User config mode
-
     dir_mode = FRONT_MODE;
     op_mode = SETUP_MODE;
 
@@ -79,74 +77,60 @@ void main(void)
 
     // SETUP mode: Use set button to incr distance by 20, use next button to move to next setting
 
-//    displayScrollText("SETUP");
-//
-//    displayScrollText("FRONT1");
-//
-//    temp_val = led_d1;
-//    while (!next) {
-//        showInt(temp_val / 58);
-//    }
-//    next = 0;
-//    led_d1 = temp_val;
-//    temp_val = 0;
-//
-//
-//    displayScrollText("FRONT2");
-//
-//    temp_val = led_d2;
-//    while (!next) {
-//        showInt(temp_val / 58);
-//    }
-//    next = 0;
-//    led_d2 = temp_val;
-//    temp_val = 0;
-//
-//
-//    displayScrollText("FRONT3");
-//
-//    temp_val = led_d3;
-//    while (!next) {
-//        showInt(temp_val / 58);
-//    }
-//    next = 0;
-//    led_d3 = temp_val;
-//    temp_val = 0;
-//
-//
-//    displayScrollText("FRONT4");
-//
-//    temp_val = led_d4;
-//    while (!next) {
-//        showInt(temp_val / 58);
-//    }
-//    next = 0;
-//    led_d4 = temp_val;
-//    temp_val = 0;
-//
-//
-//    displayScrollText("BACK1");
-//
-//    temp_val = beep_d1;
-//    while (!next) {
-//        showInt(temp_val / 58);
-//    }
-//    next = 0;
-//    beep_d1 = temp_val;
-//    temp_val = 0;
-//
-//
-//    displayScrollText("BACK2");
-//
-//    temp_val = beep_d2;
-//    while (!next) {
-//        showInt(temp_val / 58);
-//    }
-//    next = 0;
-//    beep_d2 = temp_val;
-//    temp_val = 0;
-//
-//
+    displayScrollText("SETUP");
+
+    temp_val = led_d1;
+    while (!next) {
+        showStrDistCM("Fr1", temp_val / 58);
+    }
+    next = 0;
+    led_d1 = temp_val;
+    temp_val = 0;
+
+
+    temp_val = led_d2;
+    while (!next) {
+        showStrDistCM("Fr2", temp_val / 58);
+    }
+    next = 0;
+    led_d2 = temp_val;
+    temp_val = 0;
+
+
+    temp_val = led_d3;
+    while (!next) {
+        showStrDistCM("Fr3", temp_val / 58);
+    }
+    next = 0;
+    led_d3 = temp_val;
+    temp_val = 0;
+
+
+    temp_val = led_d4;
+    while (!next) {
+        showStrDistCM("Fr4", temp_val / 58);
+    }
+    next = 0;
+    led_d4 = temp_val;
+    temp_val = 0;
+
+
+    temp_val = beep_d1;
+    while (!next) {
+        showStrDistCM("Bk1", temp_val / 58);
+    }
+    next = 0;
+    beep_d1 = temp_val;
+    temp_val = 0;
+
+
+    temp_val = beep_d2;
+    while (!next) {
+        showStrDistCM("Bk2", temp_val / 58);
+    }
+    next = 0;
+    beep_d2 = temp_val;
+    temp_val = 0;
 
     /*
      * Disable the GPIO power-on default high-impedance mode to activate
@@ -170,6 +154,8 @@ void main(void)
 
     //Enter LPM0, enable interrupts
 //    __bis_SR_register(LPM0_bits + GIE);
+    showIntB(0);
+    showIntF(0);
 
     while(1) {
         if (wait_inner >= WAIT_DUR) {
@@ -214,9 +200,9 @@ void P1_ISR(void)
     if (op_mode == SETUP_MODE) {
         GPIO_disableInterrupt(SET_BTN_PORT, SET_BTN_PIN);
 
-        __delay_cycles(10000);
+        __delay_cycles(150000);
 
-        temp_val += 580 * 2;
+        temp_val += 580 * 1;
 
         GPIO_clearInterrupt(SET_BTN_PORT, SET_BTN_PIN);
         GPIO_enableInterrupt(SET_BTN_PORT, SET_BTN_PIN);
@@ -273,7 +259,7 @@ void P2_ISR(void)
     if (op_mode == SETUP_MODE) {
         GPIO_disableInterrupt(NEXT_BTN_PORT, NEXT_BTN_PIN);
 
-        __delay_cycles(1000);
+        __delay_cycles(150000);
 
         next = 1;
 

@@ -74,15 +74,14 @@ extern const char alphabetBig[26][2];
 
 void Init_LCD(void);
 void displayScrollText(char*);
-void showChar(char, int);
-void showHex(int hex);
-void showInt(uint16_t num);
+void showChar(char, int, char);
+void showInt(uint16_t num, char);
 void clearLCD(void);
 void showIntF(uint16_t dist_cm);
 void showIntB(uint16_t dist_cm);
 void showBits(char lower, char upper, char position, char mode);
-void showCharOnTop(char c, int position);
 void showExcl(void);
 void hideExcl(void);
+void showStr6(char s[6], char mode);
 
 #endif /* HAL_LCD_H_ */

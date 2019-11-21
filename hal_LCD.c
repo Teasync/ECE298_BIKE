@@ -149,10 +149,9 @@ const char dp[5][3] = {
 const char a2col[3] = {0b00000000, 0b00000100, 6};
 const char a4col[3] = {0b00000000, 0b00000100, 10};
 
+const char pos[6] = {4, 6, 8, 10, 2, 18};
 
-
-
-void Init_LCD()
+void Init_LCD(void)
 {
     // L0~L26 & L36~L39 pins selected
     LCD_E_setPinAsLCDFunctionEx(LCD_E_BASE, LCD_E_SEGMENT_LINE_0, LCD_E_SEGMENT_LINE_26);
@@ -214,24 +213,46 @@ void displayScrollText(char *msg)
         }
         s--;
 
-        showChar(buffer[0], pos1);
-        showChar(buffer[1], pos2);
-        showChar(buffer[2], pos3);
-        showChar(buffer[3], pos4);
-        showChar(buffer[4], pos5);
-        showChar(buffer[5], pos6);
+        showChar(buffer[0], pos1, SET);
+        showChar(buffer[1], pos2, SET);
+        showChar(buffer[2], pos3, SET);
+        showChar(buffer[3], pos4, SET);
+        showChar(buffer[4], pos5, SET);
+        showChar(buffer[5], pos6, SET);
 
         __delay_cycles(200000);
     }
 }
 
+void showStr6(char s[6], char mode) {
+    int i;
+    for (i = 0; i < 6; i++) {
+        showChar(s[i], pos[i], mode);
+    }
+}
+
+// For setup
+void showStrDistCM(char s[3], int dist_cm) {
+    int i;
+    for (i = 0; i < 3; i++) {
+        showChar(s[i], pos[i], SET);
+    }
+    dist_cm /= 10;
+    for (i = 5; i >= 4; --i) {
+        showChar('0' + dist_cm % 10, pos[i], SET);
+        dist_cm /= 10;
+    }
+    showBits(dp[4][0], dp[4][1], dp[4][2], OVERWRITE);
+}
+
 /*
  * Displays input character at given LCD digit/position
- * Only spaces, numeric digits, and uppercase letters are accepted characters
+ * Only spaces, numeric digits, and letters are accepted characters
+ * Modes: OVERWRITE, TOGGLE, SET, CLEAR
  */
-void showChar(char c, int position)
+void showChar(char c, int position, char mode)
 {
-    if (c == ' ')
+    if (c == ' ' && mode == SET)
     {
         // Display space
         LCDMEMW[position/2] = 0;
@@ -239,39 +260,23 @@ void showChar(char c, int position)
     else if (c >= '0' && c <= '9')
     {
         // Display digit
-        LCDMEMW[position/2] = digit[c-48][0] | (digit[c-48][1] << 8);
+        showBits(digit[c-48][0], digit[c-48][1], position, mode);
+//        LCDMEMW[position/2] = digit[c-48][0] | (digit[c-48][1] << 8);
     }
     else if (c >= 'A' && c <= 'Z')
     {
         // Display alphabet
-        LCDMEMW[position/2] = alphabetBig[c-65][0] | (alphabetBig[c-65][1] << 8);
+        showBits(alphabetBig[c-65][0], alphabetBig[c-65][1], position, mode);
+//        LCDMEMW[position/2] = alphabetBig[c-65][0] | (alphabetBig[c-65][1] << 8);
     }
     else if (c >= 'a' && c <= 'z') {
-        LCDMEMW[position/2] = alphabetSmall[c-'a'][0] | (alphabetSmall[c-'a'][1] << 8);
-
+        showBits(alphabetSmall[c-'a'][0], alphabetSmall[c-'a'][1], position, mode);
+//        LCDMEMW[position/2] = alphabetSmall[c-'a'][0] | (alphabetSmall[c-'a'][1] << 8);
     }
     else
     {
         // Turn all segments on if character is not a space, digit, or uppercase letter
         LCDMEMW[position/2] = 0xFFFF;
-    }
-}
-
-void showCharOnTop(char c, int position)
-{
-    if (c >= '0' && c <= '9')
-    {
-        // Display digit
-        LCDMEMW[position/2] |= digit[c-48][0] | (digit[c-48][1] << 8);
-    }
-    else if (c >= 'A' && c <= 'Z')
-    {
-        // Display alphabet
-        LCDMEMW[position/2] |= alphabetBig[c-65][0] | (alphabetBig[c-65][1] << 8);
-    }
-    else if (c >= 'a' && c <= 'z') {
-        LCDMEMW[position/2] |= alphabetSmall[c-'a'][0] | (alphabetSmall[c-'a'][1] << 8);
-
     }
 }
 
@@ -300,46 +305,42 @@ void hideExcl(void) {
     showBits(excl[0], excl[1], excl[2], CLEAR);
 }
 
-/*
- * Displays hex value
- */
-void showHex(int hex)
-{
-    showChar((char)((0xC0 & hex) >> 6) + '0', pos3);
-    showChar((char)((0x30 & hex) >> 4) + '0', pos4);
-    showChar((char)((0x0C & hex) >> 2) + '0', pos5);
-    showChar((char)(0x03 & hex) + '0', pos6);
-}
+void showInt(uint16_t num, char mode) {
 
-void showInt(uint16_t num) {
-    showChar('0' + num % 10, pos6);
-    num /= 10;
-    showChar('0' + num % 10, pos5);
-    num /= 10;
-    showChar('0' + num % 10, pos4);
-    num /= 10;
-    showChar('0' + num % 10, pos3);
-    num /= 10;
-    showChar('0' + num % 10, pos2);
-    num /= 10;
-    showChar('0' + num % 10, pos1);
+    int i = 0;
+    for (i = 5; i >= 0; --i) {
+        showChar('0' + num % 10, pos[i], mode);
+        num /= 10;
+    }
+
+//    showChar('0' + num % 10, pos6);
+//    num /= 10;
+//    showChar('0' + num % 10, pos5);
+//    num /= 10;
+//    showChar('0' + num % 10, pos4);
+//    num /= 10;
+//    showChar('0' + num % 10, pos3);
+//    num /= 10;
+//    showChar('0' + num % 10, pos2);
+//    num /= 10;
+//    showChar('0' + num % 10, pos1);
 }
 
 void showIntF(uint16_t dist_cm) {
     dist_cm /= 10;
-    showChar('F', pos1);
-    showChar('0' + dist_cm % 10, pos3);
+    showChar('F', pos1, SET);
+    showChar('0' + dist_cm % 10, pos3, SET);
     dist_cm /= 10;
-    showChar('0' + dist_cm % 10, pos2);
+    showChar('0' + dist_cm % 10, pos2, SET);
     showBits(dp[1][0], dp[1][1], dp[1][2], OVERWRITE);
 }
 
 void showIntB(uint16_t dist_cm) {
     dist_cm /= 10;
-    showChar('R', pos4);
-    showChar('0' + dist_cm % 10, pos6);
+    showChar('R', pos4, SET);
+    showChar('0' + dist_cm % 10, pos6, SET);
     dist_cm /= 10;
-    showChar('0' + dist_cm % 10, pos5);
+    showChar('0' + dist_cm % 10, pos5, SET);
     showBits(dp[4][0], dp[4][1], dp[4][2], OVERWRITE);
 }
 
