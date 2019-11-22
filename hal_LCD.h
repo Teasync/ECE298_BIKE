@@ -83,5 +83,6 @@ void showBits(char lower, char upper, char position, char mode);
 void showExcl(void);
 void hideExcl(void);
 void showStr6(char s[6], char mode);
+void showStrDistCM(char s[3], int dist_cm);
 
 #endif /* HAL_LCD_H_ */

@@ -6,7 +6,9 @@
 #include <hal_LCD.h>
 
 
-#define WAIT_DUR 2000
+#define PULSE_CONST 6
+
+#define WAIT_DUR 5000
 #define WAIT_CT 2
 
 #define LED_PORT GPIO_PORT_P4

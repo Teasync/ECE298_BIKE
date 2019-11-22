@@ -53,13 +53,13 @@ void main(void)
     dir_mode = FRONT_MODE;
     op_mode = SETUP_MODE;
 
-    led_d1 = 580 * 2;
-    led_d2 = 580 * 4;
-    led_d3 = 580 * 8;
-    led_d4 = 580 * 16;
+    led_d1 = PULSE_CONST * 10 * 2;
+    led_d2 = PULSE_CONST * 10 * 4;
+    led_d3 = PULSE_CONST * 10 * 8;
+    led_d4 = PULSE_CONST * 10 * 16;
 
-    beep_d1 = 580 * 2;
-    beep_d2 = 580 * 4;
+    beep_d1 = PULSE_CONST * 10 * 2;
+    beep_d2 = PULSE_CONST * 10 * 4;
 
     Pin_Init();
 
@@ -81,7 +81,7 @@ void main(void)
 
     temp_val = led_d1;
     while (!next) {
-        showStrDistCM("Fr1", temp_val / 58);
+        showStrDistCM("Fr1", temp_val / PULSE_CONST);
     }
     next = 0;
     led_d1 = temp_val;
@@ -90,7 +90,7 @@ void main(void)
 
     temp_val = led_d2;
     while (!next) {
-        showStrDistCM("Fr2", temp_val / 58);
+        showStrDistCM("Fr2", temp_val / PULSE_CONST);
     }
     next = 0;
     led_d2 = temp_val;
@@ -99,7 +99,7 @@ void main(void)
 
     temp_val = led_d3;
     while (!next) {
-        showStrDistCM("Fr3", temp_val / 58);
+        showStrDistCM("Fr3", temp_val / PULSE_CONST);
     }
     next = 0;
     led_d3 = temp_val;
@@ -108,7 +108,7 @@ void main(void)
 
     temp_val = led_d4;
     while (!next) {
-        showStrDistCM("Fr4", temp_val / 58);
+        showStrDistCM("Fr4", temp_val / PULSE_CONST);
     }
     next = 0;
     led_d4 = temp_val;
@@ -117,7 +117,7 @@ void main(void)
 
     temp_val = beep_d1;
     while (!next) {
-        showStrDistCM("Bk1", temp_val / 58);
+        showStrDistCM("Bk1", temp_val / PULSE_CONST);
     }
     next = 0;
     beep_d1 = temp_val;
@@ -126,7 +126,7 @@ void main(void)
 
     temp_val = beep_d2;
     while (!next) {
-        showStrDistCM("Bk2", temp_val / 58);
+        showStrDistCM("Bk2", temp_val / PULSE_CONST);
     }
     next = 0;
     beep_d2 = temp_val;
@@ -138,8 +138,9 @@ void main(void)
      */
     trig_pulse = 0;
 
-    GPIO_enableInterrupt(ECHO1_PORT, ECHO1_PIN);
-    GPIO_disableInterrupt(ECHO2_PORT, ECHO2_PIN);
+//    GPIO_enableInterrupt(ECHO1_PORT, ECHO1_PIN);
+//    GPIO_disableInterrupt(ECHO2_PORT, ECHO2_PIN);
+    GPIO_enableInterrupt(ECHO2_PORT, ECHO2_PIN);
 
     GPIO_disableInterrupt(SET_BTN_PORT, SET_BTN_PIN);
     GPIO_disableInterrupt(NEXT_BTN_PORT, NEXT_BTN_PIN);
@@ -202,7 +203,7 @@ void P1_ISR(void)
 
         __delay_cycles(150000);
 
-        temp_val += 580 * 1;
+        temp_val += PULSE_CONST * 10 * 1;
 
         GPIO_clearInterrupt(SET_BTN_PORT, SET_BTN_PIN);
         GPIO_enableInterrupt(SET_BTN_PORT, SET_BTN_PIN);
@@ -228,7 +229,7 @@ void P1_ISR(void)
         GPIO_disableInterrupt(ECHO1_PORT, ECHO1_PIN);
 
         front_value = Timer_A_getCounterValue(TIMER_A0_BASE);
-        showIntF(front_value / 58);
+        showIntF(front_value / PULSE_CONST);
 
         if (front_value < beep_d1)
         {
@@ -286,10 +287,10 @@ void P2_ISR(void)
         GPIO_selectInterruptEdge(ECHO2_PORT, ECHO2_PIN,
                                  GPIO_LOW_TO_HIGH_TRANSITION);
 
-        GPIO_disableInterrupt(ECHO2_PORT, ECHO2_PIN);
+//        GPIO_disableInterrupt(ECHO2_PORT, ECHO2_PIN);
 
         back_value = Timer_A_getCounterValue(TIMER_A1_BASE);
-        showIntB(back_value / 58);
+        showIntB(back_value / PULSE_CONST);
 
         if (back_value < led_d1)
         {
@@ -311,7 +312,7 @@ void P2_ISR(void)
         {
             all_off();
         }
-        GPIO_enableInterrupt(ECHO1_PORT, ECHO1_PIN);
+//        GPIO_enableInterrupt(ECHO1_PORT, ECHO1_PIN);
     }
 
 //        beep(50);

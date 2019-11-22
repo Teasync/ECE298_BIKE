@@ -64,7 +64,7 @@ void Timer_Init(void) {
 
     //Initialize Timer 0 - For timing the length of echo pulse
     initUpParam0.clockSource = TIMER_A_CLOCKSOURCE_SMCLK;
-    initUpParam0.clockSourceDivider = TIMER_A_CLOCKSOURCE_DIVIDER_1;
+    initUpParam0.clockSourceDivider = TIMER_A_CLOCKSOURCE_DIVIDER_10;
     initUpParam0.timerPeriod = 0xFFFF;
     initUpParam0.timerInterruptEnable_TAIE = TIMER_A_TAIE_INTERRUPT_DISABLE;
     initUpParam0.timerClear = TIMER_A_DO_CLEAR;
